@@ -1,0 +1,5 @@
+theme = "kanagawa"
+
+[editor]
+clipboard-provider = "termcode"
+true-color = true
