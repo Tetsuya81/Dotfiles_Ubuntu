@@ -5,27 +5,19 @@
 
 set -e
 
-DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_DIR="$DOTFILES_DIR/config"
-
-# Colors for output
-RED="\033[0;31m"
-GREEN="\033[0;32m"
-YELLOW="\033[0;33m"
-BLUE="\033[0;34m"
-NC="\033[0m" # No Color
-
-# Dry run flag
-DRY_RUN=false
-if [[ "$1" == "--dry-run" ]]; then
-  DRY_RUN=true
-  echo -e "${YELLOW}Running in dry run mode. No links will be created.${NC}"
+# Source common utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ ! -f "${SCRIPT_DIR}/utils.sh" ]]; then
+  echo "Error: utils.sh not found in ${SCRIPT_DIR}"
+  exit 1
 fi
+source "${SCRIPT_DIR}/utils.sh"
 
-# Print header function
-print_header() {
-  echo -e "\n${BLUE}===${NC} $1 ${BLUE}===${NC}\n"
-}
+CONFIG_DIR="$DOTFILES_DIR/config"
+if [[ ! -d "$CONFIG_DIR" ]]; then
+  log_error "Config directory not found: $CONFIG_DIR"
+  exit 1
+fi
 
 # Function to create a symbolic link
 create_link() {
@@ -33,39 +25,69 @@ create_link() {
   local dest="$2"
   local backup_dir="$HOME/.dotfiles_backup/$(date +%Y%m%d_%H%M%S)"
   
+  # Check if source file exists
+  if [[ ! -e "$src" ]]; then
+    log_error "Source file does not exist: $src"
+    return 1
+  fi
+  
   # Check if destination already exists
   if [[ -e "$dest" ]]; then
     if [[ -L "$dest" ]]; then
       local current_target="$(readlink "$dest")"
       if [[ "$current_target" == "$src" ]]; then
-        echo -e "${GREEN}✓${NC} Link already exists: $dest -> $src"
+        log_info "Link already exists: $dest -> $src"
         return 0
       fi
-    fi
-    
-    # Backup existing file/directory
-    echo -e "${YELLOW}!${NC} Backing up existing file: $dest"
-    if [[ "$DRY_RUN" == "false" ]]; then
-      mkdir -p "$backup_dir"
-      mv "$dest" "$backup_dir/"
+      
+      # If it's a symlink but points elsewhere, remove it instead of backing up
+      if [[ "$DRY_RUN" == "false" ]]; then
+        log_warning "Removing existing symlink: $dest -> $current_target"
+        rm "$dest" || {
+          log_error "Failed to remove existing symlink: $dest"
+          return 1
+        }
+      else
+        echo "  Would remove existing symlink: $dest -> $current_target"
+      fi
     else
-      echo "  Would back up to: $backup_dir"
+      # Backup existing file/directory
+      log_warning "Backing up existing file: $dest"
+      if [[ "$DRY_RUN" == "false" ]]; then
+        mkdir -p "$backup_dir" || {
+          log_error "Failed to create backup directory: $backup_dir"
+          return 1
+        }
+        mv "$dest" "$backup_dir/" || {
+          log_error "Failed to backup file: $dest to $backup_dir/"
+          return 1
+        }
+        log_info "Backed up to: $backup_dir/$(basename "$dest")"
+      else
+        echo "  Would back up to: $backup_dir"
+      fi
     fi
   fi
   
   # Create parent directory if it doesn't exist
   local parent_dir="$(dirname "$dest")"
   if [[ ! -d "$parent_dir" ]]; then
-    echo -e "${BLUE}i${NC} Creating directory: $parent_dir"
+    log_info "Creating directory: $parent_dir"
     if [[ "$DRY_RUN" == "false" ]]; then
-      mkdir -p "$parent_dir"
+      mkdir -p "$parent_dir" || {
+        log_error "Failed to create directory: $parent_dir"
+        return 1
+      }
     fi
   fi
   
   # Create symbolic link
-  echo -e "${GREEN}+${NC} Creating link: $dest -> $src"
+  log_info "Creating link: $dest -> $src"
   if [[ "$DRY_RUN" == "false" ]]; then
-    ln -sf "$src" "$dest"
+    ln -sf "$src" "$dest" || {
+      log_error "Failed to create symbolic link from $src to $dest"
+      return 1
+    }
   fi
 }
 
@@ -107,7 +129,7 @@ main() {
   link_superfile
   link_starship
   
-  echo -e "\n${GREEN}Symbolic links created successfully!${NC}"
+  log_info "Symbolic links created successfully!"
 }
 
 # Run the main function

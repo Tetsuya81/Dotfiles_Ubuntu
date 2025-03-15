@@ -5,40 +5,20 @@
 
 set -e
 
-DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Colors for output
-RED="\033[0;31m"
-GREEN="\033[0;32m"
-YELLOW="\033[0;33m"
-BLUE="\033[0;34m"
-NC="\033[0m" # No Color
-
-# Dry run flag
-DRY_RUN=false
-if [[ "$1" == "--dry-run" ]]; then
-  DRY_RUN=true
-  echo -e "${YELLOW}Running in dry run mode. No changes will be made.${NC}"
+# Support being sourced by other scripts
+if [[ "${1}" == "--source-only" ]]; then
+  return 0
 fi
 
-# Print header function
-print_header() {
-  echo -e "\n${BLUE}===${NC} $1 ${BLUE}===${NC}\n"
-}
+# Source common utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ ! -f "${SCRIPT_DIR}/utils.sh" ]]; then
+  echo "Error: utils.sh not found in ${SCRIPT_DIR}"
+  exit 1
+fi
+source "${SCRIPT_DIR}/utils.sh"
 
-# Basic update and install essential packages
-update_system() {
-  print_header "Updating system packages"
-  
-  if [[ "$DRY_RUN" == "true" ]]; then
-    echo "Would run: sudo apt update"
-    echo "Would run: sudo apt upgrade -y"
-  else
-    sudo apt update
-    sudo apt upgrade -y
-  fi
-}
-
+# Install essential packages
 install_basic_packages() {
   print_header "Installing basic packages"
   
@@ -47,9 +27,12 @@ install_basic_packages() {
                   "gnupg" "software-properties-common" "zoxide")
   
   if [[ "$DRY_RUN" == "true" ]]; then
-    echo "Would run: sudo apt install -y ${packages[*]}"
+    echo "Would run: sudo apt install -y ${packages[@]}"
   else
-    sudo apt install -y "${packages[@]}"
+    sudo apt install -y "${packages[@]}" || {
+      log_error "Failed to install basic packages"
+      exit 1
+    }
   fi
 }
 
@@ -60,14 +43,44 @@ install_packages() {
   
   for script in "${package_scripts[@]}"; do
     print_header "Running $script"
+    local script_path="$DOTFILES_DIR/packages/$script"
+    
+    # Check if script exists
+    if [[ ! -f "$script_path" ]]; then
+      log_error "Script not found: $script_path"
+      continue
+    fi
+    
+    # Run script with appropriate flags
     if [[ "$DRY_RUN" == "true" ]]; then
-      echo "Would run: $DOTFILES_DIR/packages/$script"
-    else
-      if [[ -x "$DOTFILES_DIR/packages/$script" ]]; then
-        bash "$DOTFILES_DIR/packages/$script"
+      echo "Would run: $script_path --dry-run"
+      if [[ -x "$script_path" ]]; then
+        "$script_path" --dry-run || log_warning "Script $script would have failed"
       else
-        echo -e "${YELLOW}Warning: $script is not executable. Running with bash.${NC}"
-        bash "$DOTFILES_DIR/packages/$script"
+        bash "$script_path" --dry-run || log_warning "Script $script would have failed"
+      fi
+    else
+      if [[ -x "$script_path" ]]; then
+        "$script_path" || {
+          log_error "Script $script failed to execute correctly"
+          read -p "Continue with installation? (y/n): " -n 1 -r
+          echo
+          if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            log_error "Installation aborted by user"
+            exit 1
+          fi
+        }
+      else
+        log_warning "Script $script is not executable. Running with bash."
+        bash "$script_path" || {
+          log_error "Script $script failed to execute correctly"
+          read -p "Continue with installation? (y/n): " -n 1 -r
+          echo
+          if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            log_error "Installation aborted by user"
+            exit 1
+          fi
+        }
       fi
     fi
   done
@@ -77,10 +90,22 @@ install_packages() {
 create_symlinks() {
   print_header "Creating symbolic links"
   
+  local link_script="$DOTFILES_DIR/link.sh"
+  
+  # Check if link script exists
+  if [[ ! -f "$link_script" ]]; then
+    log_error "Link script not found: $link_script"
+    return 1
+  fi
+  
   if [[ "$DRY_RUN" == "true" ]]; then
-    echo "Would run: $DOTFILES_DIR/link.sh"
+    echo "Would run: $link_script --dry-run"
+    bash "$link_script" --dry-run
   else
-    bash "$DOTFILES_DIR/link.sh"
+    bash "$link_script" || {
+      log_error "Failed to create symbolic links"
+      return 1
+    }
   fi
 }
 
@@ -88,6 +113,7 @@ create_symlinks() {
 main() {
   print_header "Starting installation of Dotfiles for Ubuntu Server 24.04"
   
+  # Update system packages only once
   update_system
   install_basic_packages
   install_packages
