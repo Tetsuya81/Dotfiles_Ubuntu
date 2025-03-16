@@ -31,6 +31,8 @@ install_broot() {
       echo "Would run: brew install broot"
     else
       echo "Installing broot..."
+      # Source brew environment variables in case they're not in the current environment
+      eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv 2>/dev/null || $HOME/.linuxbrew/bin/brew shellenv 2>/dev/null)"
       brew install broot
       
       # Initialize broot
@@ -52,6 +54,8 @@ install_btop() {
       echo "Would run: brew install btop"
     else
       echo "Installing btop..."
+      # Source brew environment variables
+      eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv 2>/dev/null || $HOME/.linuxbrew/bin/brew shellenv 2>/dev/null)"
       brew install btop
       
       log_info "btop installed successfully!"

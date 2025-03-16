@@ -39,7 +39,7 @@ install_basic_packages() {
 # Run all package installation scripts
 install_packages() {
   local package_scripts=("brew.sh" "miniforge.sh" "helix.sh" "github.sh" \
-                        "tools.sh" "volta-claude.sh" "timedate.sh")
+                        "volta-claude.sh" "timedate.sh" "tools.sh")
   
   for script in "${package_scripts[@]}"; do
     print_header "Running $script"
