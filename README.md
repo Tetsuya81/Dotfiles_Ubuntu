@@ -23,6 +23,9 @@
 ```bash
 git clone https://github.com/YOUR_USERNAME/Dotfiles_Ubuntu.git
 cd Dotfiles_Ubuntu
+# 実行権限を付与
+bash chmod.sh
+# インストール実行
 bash install.sh
 ```
 
@@ -40,6 +43,8 @@ bash install.sh --dry-run
 Dotfiles_Ubuntu/
 ├── install.sh            # メインインストールスクリプト
 ├── link.sh               # シンボリックリンク作成スクリプト
+├── utils.sh              # 共通ユーティリティ関数
+├── chmod.sh              # スクリプト権限設定
 ├── README.md             # このファイル
 ├── packages/             # 各パッケージのインストールスクリプト
 │   ├── brew.sh           # Homebrewインストール
@@ -81,6 +86,7 @@ bash link.sh
 ```bash
 cd Dotfiles_Ubuntu
 git pull
+bash chmod.sh
 bash install.sh
 bash link.sh
 ```

@@ -4,27 +4,9 @@
 
 set -e
 
+# Source common utilities
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../" && pwd)"
-source "$DOTFILES_DIR/install.sh" --source-only 2>/dev/null || {
-  # Colors for output
-  RED="\033[0;31m"
-  GREEN="\033[0;32m"
-  YELLOW="\033[0;33m"
-  BLUE="\033[0;34m"
-  NC="\033[0m" # No Color
-  
-  # Print header function
-  print_header() {
-    echo -e "\n${BLUE}===${NC} $1 ${BLUE}===${NC}\n"
-  }
-  
-  # Dry run flag
-  DRY_RUN=false
-  if [[ "$1" == "--dry-run" ]]; then
-    DRY_RUN=true
-    echo -e "${YELLOW}Running in dry run mode. No changes will be made.${NC}"
-  fi
-}
+source "$DOTFILES_DIR/utils.sh"
 
 print_header "Installing Miniforge3"
 
@@ -33,7 +15,7 @@ MINIFORGE_URL="https://github.com/conda-forge/miniforge/releases/latest/download
 
 # Check if Miniforge3 is already installed
 if [[ -d "$MINIFORGE_DIR" ]] && [[ -x "$MINIFORGE_DIR/bin/conda" ]]; then
-  echo -e "${GREEN}Miniforge3 is already installed.${NC}"
+  log_info "Miniforge3 is already installed."
   
   if [[ "$DRY_RUN" == "false" ]]; then
     echo "Updating conda..."
@@ -58,7 +40,7 @@ else
   
   echo "Installing Miniforge3..."
   bash "$INSTALLER_PATH" -b -p "$MINIFORGE_DIR" || {
-    echo -e "${RED}Failed to install Miniforge3.${NC}"
+    log_error "Failed to install Miniforge3."
     rm -rf "$TEMP_DIR"
     exit 1
   }
@@ -74,6 +56,6 @@ else
   # Disable auto-activation of base environment
   "$MINIFORGE_DIR/bin/conda" config --set auto_activate_base false
   
-  echo -e "${GREEN}Miniforge3 installed successfully!${NC}"
-  echo -e "${YELLOW}Please restart your shell or run 'source ~/.bashrc' to start using conda.${NC}"
+  log_info "Miniforge3 installed successfully!"
+  log_warning "Please restart your shell or run 'source ~/.bashrc' to start using conda."
 fi

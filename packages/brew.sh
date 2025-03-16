@@ -4,33 +4,15 @@
 
 set -e
 
+# Source common utilities
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../" && pwd)"
-source "$DOTFILES_DIR/install.sh" --source-only 2>/dev/null || {
-  # Colors for output
-  RED="\033[0;31m"
-  GREEN="\033[0;32m"
-  YELLOW="\033[0;33m"
-  BLUE="\033[0;34m"
-  NC="\033[0m" # No Color
-  
-  # Print header function
-  print_header() {
-    echo -e "\n${BLUE}===${NC} $1 ${BLUE}===${NC}\n"
-  }
-  
-  # Dry run flag
-  DRY_RUN=false
-  if [[ "$1" == "--dry-run" ]]; then
-    DRY_RUN=true
-    echo -e "${YELLOW}Running in dry run mode. No changes will be made.${NC}"
-  fi
-}
+source "$DOTFILES_DIR/utils.sh"
 
 print_header "Installing Homebrew"
 
 # Check if Homebrew is already installed
-if command -v brew &>/dev/null; then
-  echo -e "${GREEN}Homebrew is already installed.${NC}"
+if command_exists brew; then
+  log_info "Homebrew is already installed."
   
   if [[ "$DRY_RUN" == "false" ]]; then
     echo "Updating Homebrew..."
@@ -48,7 +30,7 @@ if [[ "$DRY_RUN" == "true" ]]; then
 else
   echo "Installing Homebrew..."
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || {
-    echo -e "${RED}Failed to install Homebrew.${NC}"
+    log_error "Failed to install Homebrew."
     exit 1
   }
   
@@ -68,9 +50,9 @@ else
       echo 'eval "$("$HOME/.linuxbrew/bin/brew" shellenv)"' >> "$HOME/.bashrc"
     fi
   else
-    echo -e "${YELLOW}Warning: Homebrew installation directory not found.${NC}"
+    log_warning "Homebrew installation directory not found."
     echo "Please manually add Homebrew to your PATH if needed."
   fi
   
-  echo -e "${GREEN}Homebrew installed successfully!${NC}"
+  log_info "Homebrew installed successfully!"
 fi

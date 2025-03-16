@@ -4,27 +4,9 @@
 
 set -e
 
+# Source common utilities
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../" && pwd)"
-source "$DOTFILES_DIR/install.sh" --source-only 2>/dev/null || {
-  # Colors for output
-  RED="\033[0;31m"
-  GREEN="\033[0;32m"
-  YELLOW="\033[0;33m"
-  BLUE="\033[0;34m"
-  NC="\033[0m" # No Color
-  
-  # Print header function
-  print_header() {
-    echo -e "\n${BLUE}===${NC} $1 ${BLUE}===${NC}\n"
-  }
-  
-  # Dry run flag
-  DRY_RUN=false
-  if [[ "$1" == "--dry-run" ]]; then
-    DRY_RUN=true
-    echo -e "${YELLOW}Running in dry run mode. No changes will be made.${NC}"
-  fi
-}
+source "$DOTFILES_DIR/utils.sh"
 
 print_header "Configuring system time and date"
 
@@ -38,7 +20,7 @@ set_timezone() {
     echo "Would run: sudo timedatectl set-timezone $timezone"
   else
     sudo timedatectl set-timezone "$timezone"
-    echo -e "${GREEN}Timezone set to $timezone successfully!${NC}"
+    log_info "Timezone set to $timezone successfully!"
   fi
 }
 
@@ -50,7 +32,7 @@ enable_ntp() {
     echo "Would run: sudo timedatectl set-ntp true"
   else
     sudo timedatectl set-ntp true
-    echo -e "${GREEN}NTP time synchronization enabled!${NC}"
+    log_info "NTP time synchronization enabled!"
   fi
 }
 
@@ -71,7 +53,7 @@ main() {
   enable_ntp
   display_time_settings
   
-  echo -e "\n${GREEN}System time and date configuration completed!${NC}"
+  log_info "System time and date configuration completed!"
 }
 
 # Run the main function
