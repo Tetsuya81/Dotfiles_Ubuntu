@@ -26,21 +26,36 @@ install_volta() {
       export VOLTA_HOME="$HOME/.volta"
       export PATH="$VOLTA_HOME/bin:$PATH"
       
+      # Ensure Volta is in .bashrc if not already there
+      if ! grep -q "VOLTA_HOME=\"\$HOME/.volta\"" "$HOME/.bashrc"; then
+        echo 'export VOLTA_HOME="$HOME/.volta"' >> "$HOME/.bashrc"
+        echo 'export PATH="$VOLTA_HOME/bin:$PATH"' >> "$HOME/.bashrc"
+      fi
+      
       log_info "Volta installed successfully!"
     fi
   fi
   
   # Install Node.js and npm using Volta
-  if command_exists volta; then
-    if [[ "$DRY_RUN" == "true" ]]; then
-      echo "Would run: volta install node"
-      echo "Would run: volta install npm"
-    else
-      echo "Installing Node.js using Volta..."
+  if [[ "$DRY_RUN" == "true" ]]; then
+    echo "Would run: $HOME/.volta/bin/volta install node"
+    echo "Would run: $HOME/.volta/bin/volta install npm"
+  else
+    echo "Installing Node.js using Volta..."
+    # Use full path to ensure we can find volta
+    if [[ -f "$HOME/.volta/bin/volta" ]]; then
+      "$HOME/.volta/bin/volta" install node
+      
+      echo "Installing npm using Volta..."
+      "$HOME/.volta/bin/volta" install npm
+    elif command_exists volta; then
       volta install node
       
       echo "Installing npm using Volta..."
       volta install npm
+    else
+      log_error "Volta executable not found. PATH may not be properly set."
+      return 1
     fi
   fi
 }
@@ -60,6 +75,12 @@ install_claude_code() {
       if ! command_exists npm; then
         log_error "npm is not installed. Cannot install Claude Code."
         return 1
+      fi
+      
+      # Make sure Volta PATH is available
+      if [[ -d "$HOME/.volta/bin" ]]; then
+        export VOLTA_HOME="$HOME/.volta"
+        export PATH="$VOLTA_HOME/bin:$PATH"
       fi
       
       echo "Installing Claude Code..."
