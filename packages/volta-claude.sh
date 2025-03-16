@@ -69,7 +69,7 @@ install_claude_code() {
     log_info "Claude Code is already installed."
   else
     if [[ "$DRY_RUN" == "true" ]]; then
-      echo "Would run: npm install -g claude-code-cli"
+      echo "Would run: npm install -g @anthropic-ai/claude-code"
     else
       # Check if npm is available
       if ! command_exists npm; then
@@ -84,17 +84,9 @@ install_claude_code() {
       fi
       
       echo "Installing Claude Code..."
-      # パッケージ名が変更されている可能性があるため修正
-      npm install -g claude-code-cli || {
-        log_warning "Failed to install claude-code-cli, trying alternative package name..."
-        npm install -g @anthropic/claude-code || {
-          log_warning "Failed to install @anthropic/claude-code, trying original package name..."
-          npm install -g @anthropic-ai/claude-code-cli || {
-            log_error "Failed to install Claude Code. Package may have been renamed or removed."
-            log_info "Please check https://www.npmjs.com/search?q=claude%20code for the current package name."
-            return 1
-          }
-        }
+      npm install -g @anthropic-ai/claude-code || {
+        log_error "Failed to install Claude Code."
+        return 1
       }
       
       log_info "Claude Code installed successfully!"
