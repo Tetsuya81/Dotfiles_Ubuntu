@@ -98,17 +98,13 @@ install_superfile() {
     log_info "superfile is already installed."
   else
     if [[ "$DRY_RUN" == "true" ]]; then
-      echo "Would run: npm install -g superfile"
+      echo "Would run: brew install superfile"
     else
-      # Check if npm is available
-      if ! command_exists npm; then
-        log_warning "npm is not installed. Will not install superfile."
-        log_warning "Consider running the volta-claude.sh script first."
-        return 1
-      fi
+      # Source brew environment variables
+      eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv 2>/dev/null || $HOME/.linuxbrew/bin/brew shellenv 2>/dev/null)"
       
       echo "Installing superfile..."
-      npm install -g superfile
+      brew install superfile
       
       # Create config directory
       mkdir -p "$HOME/.config/superfile"
